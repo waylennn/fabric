@@ -31,7 +31,7 @@ type validateIdentityOUsFuncType func(id *identity) error
 // satisfiesPrincipalInternalFuncType is the prototype of the function to check if principals are satisfied
 type satisfiesPrincipalInternalFuncType func(id Identity, principal *m.MSPPrincipal) error
 
-//setupAdminInternalFuncType is a prototype of the function to setup the admins
+// setupAdminInternalFuncType is a prototype of the function to setup the admins
 type setupAdminInternalFuncType func(conf *m.FabricMSPConfig) error
 
 // This is an instantiation of an MSP that
@@ -217,7 +217,11 @@ func (msp *bccspmsp) getSigningIdentityFromConf(sidInfo *m.SigningIdentityInfo) 
 	privKey, err := msp.bccsp.GetKey(pubKey.SKI())
 	// Less Secure: Attempt to import Private Key from KeyInfo, if BCCSP was not able to find the key
 	if err != nil {
-		mspLogger.Debugf("Could not find SKI [%s], trying KeyMaterial field: %+v\n", hex.EncodeToString(pubKey.SKI()), err)
+		mspLogger.Debugf(
+			"Could not find SKI [%s], trying KeyMaterial field: %+v\n",
+			hex.EncodeToString(pubKey.SKI()),
+			err,
+		)
 		if sidInfo.PrivateSigner == nil || sidInfo.PrivateSigner.KeyMaterial == nil {
 			return nil, errors.New("KeyMaterial not found in SigningIdentityInfo")
 		}
@@ -250,6 +254,7 @@ func (msp *bccspmsp) Setup(conf1 *m.MSPConfig) error {
 	}
 
 	// given that it's an msp of type fabric, extract the MSPConfig instance
+	// 解析前面从MSP目录读到的MSP配置文件对象
 	conf := &m.FabricMSPConfig{}
 	err := proto.Unmarshal(conf1.Config, conf)
 	if err != nil {
@@ -261,6 +266,7 @@ func (msp *bccspmsp) Setup(conf1 *m.MSPConfig) error {
 	mspLogger.Debugf("Setting up MSP instance %s", msp.name)
 
 	// setup
+
 	return msp.internalSetupFunc(conf)
 }
 
@@ -366,7 +372,11 @@ func (msp *bccspmsp) hasOURoleInternal(id *identity, mspRole m.MSPRole_MSPRoleTy
 	}
 
 	if nodeOU == nil {
-		return errors.Errorf("cannot test for classification, node ou for type [%s], not defined, msp: [%s]", mspRole, msp.name)
+		return errors.Errorf(
+			"cannot test for classification, node ou for type [%s], not defined, msp: [%s]",
+			mspRole,
+			msp.name,
+		)
 	}
 
 	for _, OU := range id.GetOrganizationalUnits() {
@@ -492,7 +502,11 @@ func (msp *bccspmsp) satisfiesPrincipalInternalPreV13(id Identity, principal *m.
 		// at first, we check whether the MSP
 		// identifier is the same as that of the identity
 		if mspRole.MspIdentifier != msp.name {
-			return errors.Errorf("the identity is a member of a different MSP (expected %s, got %s)", mspRole.MspIdentifier, id.GetMSPIdentifier())
+			return errors.Errorf(
+				"the identity is a member of a different MSP (expected %s, got %s)",
+				mspRole.MspIdentifier,
+				id.GetMSPIdentifier(),
+			)
 		}
 
 		// now we validate the different msp roles
@@ -513,13 +527,22 @@ func (msp *bccspmsp) satisfiesPrincipalInternalPreV13(id Identity, principal *m.
 		case m.MSPRole_CLIENT:
 			fallthrough
 		case m.MSPRole_PEER:
-			mspLogger.Debugf("Checking if identity satisfies role [%s] for %s", m.MSPRole_MSPRoleType_name[int32(mspRole.Role)], msp.name)
+			mspLogger.Debugf(
+				"Checking if identity satisfies role [%s] for %s",
+				m.MSPRole_MSPRoleType_name[int32(mspRole.Role)],
+				msp.name,
+			)
 			if err := msp.Validate(id); err != nil {
 				return errors.Wrapf(err, "The identity is not valid under this MSP [%s]", msp.name)
 			}
 
 			if err := msp.hasOURole(id, mspRole.Role); err != nil {
-				return errors.Wrapf(err, "The identity is not a [%s] under this MSP [%s]", m.MSPRole_MSPRoleType_name[int32(mspRole.Role)], msp.name)
+				return errors.Wrapf(
+					err,
+					"The identity is not a [%s] under this MSP [%s]",
+					m.MSPRole_MSPRoleType_name[int32(mspRole.Role)],
+					msp.name,
+				)
 			}
 			return nil
 		default:
@@ -549,7 +572,11 @@ func (msp *bccspmsp) satisfiesPrincipalInternalPreV13(id Identity, principal *m.
 		// at first, we check whether the MSP
 		// identifier is the same as that of the identity
 		if OU.MspIdentifier != msp.name {
-			return errors.Errorf("the identity is a member of a different MSP (expected %s, got %s)", OU.MspIdentifier, id.GetMSPIdentifier())
+			return errors.Errorf(
+				"the identity is a member of a different MSP (expected %s, got %s)",
+				OU.MspIdentifier,
+				id.GetMSPIdentifier(),
+			)
 		}
 
 		// we then check if the identity is valid with this MSP
@@ -629,7 +656,11 @@ func (msp *bccspmsp) satisfiesPrincipalInternalV142(id Identity, principal *m.MS
 		// at first, we check whether the MSP
 		// identifier is the same as that of the identity
 		if mspRole.MspIdentifier != msp.name {
-			return errors.Errorf("the identity is a member of a different MSP (expected %s, got %s)", mspRole.MspIdentifier, id.GetMSPIdentifier())
+			return errors.Errorf(
+				"the identity is a member of a different MSP (expected %s, got %s)",
+				mspRole.MspIdentifier,
+				id.GetMSPIdentifier(),
+			)
 		}
 
 		// now we validate the admin role only, the other roles are left to the v1.3 function
@@ -654,13 +685,22 @@ func (msp *bccspmsp) satisfiesPrincipalInternalV142(id Identity, principal *m.MS
 
 			return nil
 		case m.MSPRole_ORDERER:
-			mspLogger.Debugf("Checking if identity satisfies role [%s] for %s", m.MSPRole_MSPRoleType_name[int32(mspRole.Role)], msp.name)
+			mspLogger.Debugf(
+				"Checking if identity satisfies role [%s] for %s",
+				m.MSPRole_MSPRoleType_name[int32(mspRole.Role)],
+				msp.name,
+			)
 			if err := msp.Validate(id); err != nil {
 				return errors.Wrapf(err, "The identity is not valid under this MSP [%s]", msp.name)
 			}
 
 			if err := msp.hasOURole(id, mspRole.Role); err != nil {
-				return errors.Wrapf(err, "The identity is not a [%s] under this MSP [%s]", m.MSPRole_MSPRoleType_name[int32(mspRole.Role)], msp.name)
+				return errors.Wrapf(
+					err,
+					"The identity is not a [%s] under this MSP [%s]",
+					m.MSPRole_MSPRoleType_name[int32(mspRole.Role)],
+					msp.name,
+				)
 			}
 			return nil
 		}
@@ -717,7 +757,10 @@ func (msp *bccspmsp) getCertificationChainForBCCSPIdentity(id *identity) ([]*x50
 	return msp.getValidationChain(id.cert, false)
 }
 
-func (msp *bccspmsp) getUniqueValidationChain(cert *x509.Certificate, opts x509.VerifyOptions) ([]*x509.Certificate, error) {
+func (msp *bccspmsp) getUniqueValidationChain(
+	cert *x509.Certificate,
+	opts x509.VerifyOptions,
+) ([]*x509.Certificate, error) {
 	// ask golang to validate the cert for us based on the options that we've built at setup time
 	if msp.opts == nil {
 		return nil, errors.New("the supplied identity has no verify options")
@@ -755,7 +798,10 @@ func (msp *bccspmsp) getValidationChain(cert *x509.Certificate, isIntermediateCh
 		parentPosition = 0
 	}
 	if msp.certificationTreeInternalNodesMap[string(validationChain[parentPosition].Raw)] {
-		return nil, errors.Errorf("invalid validation chain. Parent certificate should be a leaf of the certification tree [%v]", cert.Raw)
+		return nil, errors.Errorf(
+			"invalid validation chain. Parent certificate should be a leaf of the certification tree [%v]",
+			cert.Raw,
+		)
 	}
 	return validationChain, nil
 }
@@ -783,7 +829,10 @@ func (msp *bccspmsp) getCertificationChainIdentifierFromChain(chain []*x509.Cert
 
 	hf, err := msp.bccsp.GetHash(hashOpt)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed getting hash function when computing certification chain identifier")
+		return nil, errors.WithMessage(
+			err,
+			"failed getting hash function when computing certification chain identifier",
+		)
 	}
 	for i := 0; i < len(chain); i++ {
 		hf.Write(chain[i].Raw)

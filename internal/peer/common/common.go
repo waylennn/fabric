@@ -34,11 +34,15 @@ import (
 )
 
 // UndefinedParamValue defines what undefined parameters in the command line will initialise to
-const UndefinedParamValue = ""
-const CmdRoot = "core"
+const (
+	UndefinedParamValue = ""
+	CmdRoot             = "core"
+)
 
-var mainLogger = flogging.MustGetLogger("main")
-var logOutput = os.Stderr
+var (
+	mainLogger = flogging.MustGetLogger("main")
+	logOutput  = os.Stderr
+)
 
 var (
 	defaultConnTimeout = 3 * time.Second
@@ -95,7 +99,6 @@ func init() {
 
 // InitConfig initializes viper config
 func InitConfig(cmdRoot string) error {
-
 	err := config.InitViper(nil, cmdRoot)
 	if err != nil {
 		return err
@@ -140,9 +143,15 @@ func InitCrypto(mspMgrConfigDir, localMSPID, localMSPType string) error {
 		}
 	}
 
+	// 初始化本地MSP
 	err = mspmgmt.LoadLocalMspWithType(mspMgrConfigDir, bccspConfig, localMSPID, localMSPType)
 	if err != nil {
-		return errors.WithMessagef(err, "error when setting up MSP of type %s from directory %s", localMSPType, mspMgrConfigDir)
+		return errors.WithMessagef(
+			err,
+			"error when setting up MSP of type %s from directory %s",
+			localMSPType,
+			mspMgrConfigDir,
+		)
 	}
 
 	return nil
@@ -172,7 +181,12 @@ type Signer interface {
 }
 
 // GetOrdererEndpointOfChain returns orderer endpoints of given chain
-func GetOrdererEndpointOfChain(chainID string, signer Signer, endorserClient pb.EndorserClient, cryptoProvider bccsp.BCCSP) ([]string, error) {
+func GetOrdererEndpointOfChain(
+	chainID string,
+	signer Signer,
+	endorserClient pb.EndorserClient,
+	cryptoProvider bccsp.BCCSP,
+) ([]string, error) {
 	// query cscc for chain config block
 	invocation := &pb.ChaincodeInvocationSpec{
 		ChaincodeSpec: &pb.ChaincodeSpec{
@@ -207,7 +221,11 @@ func GetOrdererEndpointOfChain(chainID string, signer Signer, endorserClient pb.
 	}
 
 	if proposalResp.Response.Status != 0 && proposalResp.Response.Status != 200 {
-		return nil, errors.Errorf("error bad proposal response %d: %s", proposalResp.Response.Status, proposalResp.Response.Message)
+		return nil, errors.Errorf(
+			"error bad proposal response %d: %s",
+			proposalResp.Response.Status,
+			proposalResp.Response.Message,
+		)
 	}
 
 	// parse config block
@@ -247,7 +265,8 @@ func configFromEnv(prefix string) (address, override string, clientConfig comm.C
 	clientConfig.Timeout = connTimeout
 	secOpts := comm.SecureOptions{
 		UseTLS:            viper.GetBool(prefix + ".tls.enabled"),
-		RequireClientCert: viper.GetBool(prefix + ".tls.clientAuthRequired")}
+		RequireClientCert: viper.GetBool(prefix + ".tls.clientAuthRequired"),
+	}
 	if secOpts.UseTLS {
 		caPEM, res := ioutil.ReadFile(config.GetPath(prefix + ".tls.rootcert.file"))
 		if res != nil {
@@ -293,7 +312,9 @@ func InitCmd(cmd *cobra.Command, args []string) {
 		loggingLevel = viper.GetString("logging.level")
 	}
 	if loggingLevel != "" {
-		mainLogger.Warning("CORE_LOGGING_LEVEL is no longer supported, please use the FABRIC_LOGGING_SPEC environment variable")
+		mainLogger.Warning(
+			"CORE_LOGGING_LEVEL is no longer supported, please use the FABRIC_LOGGING_SPEC environment variable",
+		)
 	}
 
 	loggingSpec := os.Getenv("FABRIC_LOGGING_SPEC")
@@ -312,9 +333,9 @@ func InitCmd(cmd *cobra.Command, args []string) {
 	}
 
 	// Init the MSP
-	var mspMgrConfigDir = config.GetPath("peer.mspConfigPath")
-	var mspID = viper.GetString("peer.localMspId")
-	var mspType = viper.GetString("peer.localMspType")
+	mspMgrConfigDir := config.GetPath("peer.mspConfigPath")
+	mspID := viper.GetString("peer.localMspId")
+	mspType := viper.GetString("peer.localMspType")
 	if mspType == "" {
 		mspType = msp.ProviderTypeToString(msp.FABRIC)
 	}

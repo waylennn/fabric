@@ -156,7 +156,11 @@ func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, keystoreDir stri
 // GetLocalMspConfigWithType returns a local MSP
 // configuration for the MSP in the specified
 // directory, with the specified ID and type
-func GetLocalMspConfigWithType(dir string, bccspConfig *factory.FactoryOpts, ID, mspType string) (*msp.MSPConfig, error) {
+func GetLocalMspConfigWithType(
+	dir string,
+	bccspConfig *factory.FactoryOpts,
+	ID, mspType string,
+) (*msp.MSPConfig, error) {
 	switch mspType {
 	case ProviderTypeToString(FABRIC):
 		return GetLocalMspConfig(dir, bccspConfig, ID)
@@ -168,8 +172,10 @@ func GetLocalMspConfigWithType(dir string, bccspConfig *factory.FactoryOpts, ID,
 }
 
 func GetLocalMspConfig(dir string, bccspConfig *factory.FactoryOpts, ID string) (*msp.MSPConfig, error) {
+	// 获取signcerts和keystore目录,作为节点身份证书和私钥的路径
 	signcertDir := filepath.Join(dir, signcerts)
 	keystoreDir := filepath.Join(dir, keystore)
+	// 获取bccsp配置 根据这个配置初始化bccsp对象
 	bccspConfig = SetupBCCSPKeystoreConfig(bccspConfig, keystoreDir)
 
 	err := factory.InitFactories(bccspConfig)
@@ -188,6 +194,7 @@ func GetLocalMspConfig(dir string, bccspConfig *factory.FactoryOpts, ID string) 
 	   signing cert
 	*/
 
+	// 获取signcerts目录下的证书，并只取第一个作为节点的身份证书
 	sigid := &msp.SigningIdentityInfo{PublicSigner: signcert[0], PrivateSigner: nil}
 
 	return getMspConfig(dir, ID, sigid)
@@ -206,6 +213,7 @@ func GetVerifyingMspConfig(dir, ID, mspType string) (*msp.MSPConfig, error) {
 }
 
 func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.MSPConfig, error) {
+	// 读取MSP下面各类证书, config.yaml配置文件的操作，并将这些数据存储到后面的FabricMSPConfig实例中
 	cacertDir := filepath.Join(dir, cacerts)
 	admincertDir := filepath.Join(dir, admincerts)
 	intermediatecertsDir := filepath.Join(dir, intermediatecerts)
@@ -234,7 +242,11 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 	tlsCACerts, err := getPemMaterialFromDir(tlscacertDir)
 	tlsIntermediateCerts := [][]byte{}
 	if os.IsNotExist(err) {
-		mspLogger.Debugf("TLS CA certs folder not found at [%s]. Skipping and ignoring TLS intermediate CA folder. [%s]", tlsintermediatecertsDir, err)
+		mspLogger.Debugf(
+			"TLS CA certs folder not found at [%s]. Skipping and ignoring TLS intermediate CA folder. [%s]",
+			tlsintermediatecertsDir,
+			err,
+		)
 	} else if err != nil {
 		return nil, errors.WithMessagef(err, "failed loading TLS ca certs at [%s]", tlsintermediatecertsDir)
 	} else if len(tlsCACerts) != 0 {
@@ -298,36 +310,64 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 			nodeOUs = &msp.FabricNodeOUs{
 				Enable: true,
 			}
-			if configuration.NodeOUs.ClientOUIdentifier != nil && len(configuration.NodeOUs.ClientOUIdentifier.OrganizationalUnitIdentifier) != 0 {
-				nodeOUs.ClientOuIdentifier = &msp.FabricOUIdentifier{OrganizationalUnitIdentifier: configuration.NodeOUs.ClientOUIdentifier.OrganizationalUnitIdentifier}
+			if configuration.NodeOUs.ClientOUIdentifier != nil &&
+				len(configuration.NodeOUs.ClientOUIdentifier.OrganizationalUnitIdentifier) != 0 {
+				nodeOUs.ClientOuIdentifier = &msp.FabricOUIdentifier{
+					OrganizationalUnitIdentifier: configuration.NodeOUs.ClientOUIdentifier.OrganizationalUnitIdentifier,
+				}
 			}
-			if configuration.NodeOUs.PeerOUIdentifier != nil && len(configuration.NodeOUs.PeerOUIdentifier.OrganizationalUnitIdentifier) != 0 {
-				nodeOUs.PeerOuIdentifier = &msp.FabricOUIdentifier{OrganizationalUnitIdentifier: configuration.NodeOUs.PeerOUIdentifier.OrganizationalUnitIdentifier}
+			if configuration.NodeOUs.PeerOUIdentifier != nil &&
+				len(configuration.NodeOUs.PeerOUIdentifier.OrganizationalUnitIdentifier) != 0 {
+				nodeOUs.PeerOuIdentifier = &msp.FabricOUIdentifier{
+					OrganizationalUnitIdentifier: configuration.NodeOUs.PeerOUIdentifier.OrganizationalUnitIdentifier,
+				}
 			}
-			if configuration.NodeOUs.AdminOUIdentifier != nil && len(configuration.NodeOUs.AdminOUIdentifier.OrganizationalUnitIdentifier) != 0 {
-				nodeOUs.AdminOuIdentifier = &msp.FabricOUIdentifier{OrganizationalUnitIdentifier: configuration.NodeOUs.AdminOUIdentifier.OrganizationalUnitIdentifier}
+			if configuration.NodeOUs.AdminOUIdentifier != nil &&
+				len(configuration.NodeOUs.AdminOUIdentifier.OrganizationalUnitIdentifier) != 0 {
+				nodeOUs.AdminOuIdentifier = &msp.FabricOUIdentifier{
+					OrganizationalUnitIdentifier: configuration.NodeOUs.AdminOUIdentifier.OrganizationalUnitIdentifier,
+				}
 			}
-			if configuration.NodeOUs.OrdererOUIdentifier != nil && len(configuration.NodeOUs.OrdererOUIdentifier.OrganizationalUnitIdentifier) != 0 {
-				nodeOUs.OrdererOuIdentifier = &msp.FabricOUIdentifier{OrganizationalUnitIdentifier: configuration.NodeOUs.OrdererOUIdentifier.OrganizationalUnitIdentifier}
+			if configuration.NodeOUs.OrdererOUIdentifier != nil &&
+				len(configuration.NodeOUs.OrdererOUIdentifier.OrganizationalUnitIdentifier) != 0 {
+				nodeOUs.OrdererOuIdentifier = &msp.FabricOUIdentifier{
+					OrganizationalUnitIdentifier: configuration.NodeOUs.OrdererOUIdentifier.OrganizationalUnitIdentifier,
+				}
 			}
 
 			// Read certificates, if defined
 
 			// ClientOU
 			if nodeOUs.ClientOuIdentifier != nil {
-				nodeOUs.ClientOuIdentifier.Certificate = loadCertificateAt(dir, configuration.NodeOUs.ClientOUIdentifier.Certificate, "ClientOU")
+				nodeOUs.ClientOuIdentifier.Certificate = loadCertificateAt(
+					dir,
+					configuration.NodeOUs.ClientOUIdentifier.Certificate,
+					"ClientOU",
+				)
 			}
 			// PeerOU
 			if nodeOUs.PeerOuIdentifier != nil {
-				nodeOUs.PeerOuIdentifier.Certificate = loadCertificateAt(dir, configuration.NodeOUs.PeerOUIdentifier.Certificate, "PeerOU")
+				nodeOUs.PeerOuIdentifier.Certificate = loadCertificateAt(
+					dir,
+					configuration.NodeOUs.PeerOUIdentifier.Certificate,
+					"PeerOU",
+				)
 			}
 			// AdminOU
 			if nodeOUs.AdminOuIdentifier != nil {
-				nodeOUs.AdminOuIdentifier.Certificate = loadCertificateAt(dir, configuration.NodeOUs.AdminOUIdentifier.Certificate, "AdminOU")
+				nodeOUs.AdminOuIdentifier.Certificate = loadCertificateAt(
+					dir,
+					configuration.NodeOUs.AdminOUIdentifier.Certificate,
+					"AdminOU",
+				)
 			}
 			// OrdererOU
 			if nodeOUs.OrdererOuIdentifier != nil {
-				nodeOUs.OrdererOuIdentifier.Certificate = loadCertificateAt(dir, configuration.NodeOUs.OrdererOUIdentifier.Certificate, "OrdererOU")
+				nodeOUs.OrdererOuIdentifier.Certificate = loadCertificateAt(
+					dir,
+					configuration.NodeOUs.OrdererOUIdentifier.Certificate,
+					"OrdererOU",
+				)
 			}
 		}
 	} else {
@@ -357,6 +397,7 @@ func getMspConfig(dir string, ID string, sigid *msp.SigningIdentityInfo) (*msp.M
 
 	fmpsjs, _ := proto.Marshal(fmspconf)
 
+	// 创建msp配置实例
 	mspconf := &msp.MSPConfig{Config: fmpsjs, Type: int32(FABRIC)}
 
 	return mspconf, nil

@@ -52,10 +52,12 @@ func LoadLocalMsp(dir string, bccspConfig *factory.FactoryOpts, mspID string) er
 // OWNERSHIP OF PER-CHAIN MSP MANAGERS WILL BE HANDLED BY IT;
 // HOWEVER IN THE INTERIM, THESE HELPER FUNCTIONS ARE REQUIRED
 
-var m sync.Mutex
-var localMsp msp.MSP
-var mspMap map[string]msp.MSPManager = make(map[string]msp.MSPManager)
-var mspLogger = flogging.MustGetLogger("msp")
+var (
+	m         sync.Mutex
+	localMsp  msp.MSP
+	mspMap    map[string]msp.MSPManager = make(map[string]msp.MSPManager)
+	mspLogger                           = flogging.MustGetLogger("msp")
+)
 
 // TODO - this is a temporary solution to allow the peer to track whether the
 // MSPManager has been setup for a channel, which indicates whether the channel
@@ -146,6 +148,7 @@ func GetLocalMSP(cryptoProvider bccsp.BCCSP) msp.MSP {
 
 func loadLocaMSP(bccsp bccsp.BCCSP) msp.MSP {
 	// determine the type of MSP (by default, we'll use bccspMSP)
+	// 查看是否支持配置指定的MSP类型。未配置时，默认使用BCCSP类型的MSP
 	mspType := viper.GetString("peer.localMspType")
 	if mspType == "" {
 		mspType = msp.ProviderTypeToString(msp.FABRIC)
@@ -156,12 +159,15 @@ func loadLocaMSP(bccsp bccsp.BCCSP) msp.MSP {
 		mspLogger.Panicf("msp type " + mspType + " unknown")
 	}
 
+	// 创建一个BCCSP类型的MSP实例
 	mspInst, err := msp.New(newOpts, bccsp)
 	if err != nil {
 		mspLogger.Fatalf("Failed to initialize local MSP, received err %+v", err)
 	}
 	switch mspType {
 	case msp.ProviderTypeToString(msp.FABRIC):
+		// 缓存使用类似LRU的二次机会算法
+		// 只要被使用过 ，则直接把对象放到尾部淘头部对象
 		mspInst, err = cache.New(mspInst)
 		if err != nil {
 			mspLogger.Fatalf("Failed to initialize local MSP, received err %+v", err)
