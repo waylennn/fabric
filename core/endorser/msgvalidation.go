@@ -175,6 +175,7 @@ func (up *UnpackedProposal) Validate(idDeserializer msp.IdentityDeserializer) er
 	genericAuthError := errors.Errorf("access denied: channel [%s] creator org [%s]", up.ChannelID(), sId.Mspid)
 
 	// get the identity of the creator
+	// 验证身份签名有效性
 	creator, err := idDeserializer.DeserializeIdentity(up.SignatureHeader.Creator)
 	if err != nil {
 		logger.Warningf("access denied: channel %s", err)
@@ -182,6 +183,7 @@ func (up *UnpackedProposal) Validate(idDeserializer msp.IdentityDeserializer) er
 	}
 
 	// ensure that creator is a valid certificate
+	// 验证身份的有效性
 	err = creator.Validate()
 	if err != nil {
 		logger.Warningf("access denied: identity is not valid: %s", err)
@@ -193,6 +195,7 @@ func (up *UnpackedProposal) Validate(idDeserializer msp.IdentityDeserializer) er
 	logger.Debug("creator is valid")
 
 	// validate the signature
+	// 核实签名 看是否被篡改
 	err = creator.Verify(up.SignedProposal.ProposalBytes, up.SignedProposal.Signature)
 	if err != nil {
 		logger.Warningf("access denied: creator's signature over the proposal is not valid: %s", err)

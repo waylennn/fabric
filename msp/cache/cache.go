@@ -92,12 +92,14 @@ func (c *cachedMSP) Validate(id msp.Identity) error {
 	identifier := id.GetIdentifier()
 	key := string(identifier.Mspid + ":" + identifier.Id)
 
+	// 缓存中获取这个身份，如果存在表示验证过了 直接返回
 	_, ok := c.validateIdentityCache.get(key)
 	if ok {
 		// cache only stores if the identity is valid.
 		return nil
 	}
 
+	// 验证身份
 	err := c.MSP.Validate(id)
 	if err == nil {
 		c.validateIdentityCache.add(key, true)
