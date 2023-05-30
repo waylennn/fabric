@@ -71,15 +71,22 @@ func newIdentity(cert *x509.Certificate, pk bccsp.Key, msp *bccspmsp) (Identity,
 		return nil, errors.WithMessage(err, "failed getting hash function options")
 	}
 
+	// 计算出证书原始数据cert.Raw的哈希值
 	digest, err := msp.bccsp.Hash(cert.Raw, hashOpt)
 	if err != nil {
-		return nil, errors.WithMessage(err, "failed hashing raw certificate to compute the id of the IdentityIdentifier")
+		return nil, errors.WithMessage(
+			err,
+			"failed hashing raw certificate to compute the id of the IdentityIdentifier",
+		)
 	}
 
+	// 将MSPID,证书原始数据的哈希值作为身份的id
 	id := &IdentityIdentifier{
 		Mspid: msp.name,
-		Id:    hex.EncodeToString(digest)}
+		Id:    hex.EncodeToString(digest),
+	}
 
+	// 创建身份对象
 	return &identity{id: id, cert: cert, pk: pk, msp: msp}, nil
 }
 
@@ -233,8 +240,13 @@ type signingidentity struct {
 	signer crypto.Signer
 }
 
-func newSigningIdentity(cert *x509.Certificate, pk bccsp.Key, signer crypto.Signer, msp *bccspmsp) (SigningIdentity, error) {
-	//mspIdentityLogger.Infof("Creating signing identity instance for ID %s", id)
+func newSigningIdentity(
+	cert *x509.Certificate,
+	pk bccsp.Key,
+	signer crypto.Signer,
+	msp *bccspmsp,
+) (SigningIdentity, error) {
+	// mspIdentityLogger.Infof("Creating signing identity instance for ID %s", id)
 	mspId, err := newIdentity(cert, pk, msp)
 	if err != nil {
 		return nil, err
@@ -252,7 +264,7 @@ func newSigningIdentity(cert *x509.Certificate, pk bccsp.Key, signer crypto.Sign
 
 // Sign produces a signature over msg, signed by this instance
 func (id *signingidentity) Sign(msg []byte) ([]byte, error) {
-	//mspIdentityLogger.Infof("Signing message")
+	// mspIdentityLogger.Infof("Signing message")
 
 	// Compute Hash
 	hashOpt, err := id.getHashOpt(id.msp.cryptoConfig.SignatureHashFamily)

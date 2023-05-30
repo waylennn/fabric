@@ -5,15 +5,14 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-		 http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-*/
-package factory
+*/package factory
 
 import (
 	"github.com/hyperledger/fabric/bccsp"
@@ -44,6 +43,7 @@ func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 	swOpts := config.SwOpts
 
 	var ks bccsp.KeyStore
+	// 根据配置，创建一个指定类型的KeyStore, 用于读取，存储或缓存bccsp的密钥
 	switch {
 	case swOpts.Ephemeral:
 		ks = sw.NewDummyKeyStore()
@@ -60,6 +60,7 @@ func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 		ks = sw.NewDummyKeyStore()
 	}
 
+	// 创建BCCSP实例
 	return sw.NewWithParams(swOpts.SecLevel, swOpts.HashFamily, ks)
 }
 
@@ -67,11 +68,11 @@ func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 type SwOpts struct {
 	// Default algorithms when not specified (Deprecated?)
 	SecLevel   int    `mapstructure:"security" json:"security" yaml:"Security"`
-	HashFamily string `mapstructure:"hash" json:"hash" yaml:"Hash"`
+	HashFamily string `mapstructure:"hash"     json:"hash"     yaml:"Hash"`
 
 	// Keystore Options
-	Ephemeral     bool               `mapstructure:"tempkeys,omitempty" json:"tempkeys,omitempty"`
-	FileKeystore  *FileKeystoreOpts  `mapstructure:"filekeystore,omitempty" json:"filekeystore,omitempty" yaml:"FileKeyStore"`
+	Ephemeral     bool               `mapstructure:"tempkeys,omitempty"      json:"tempkeys,omitempty"`
+	FileKeystore  *FileKeystoreOpts  `mapstructure:"filekeystore,omitempty"  json:"filekeystore,omitempty"  yaml:"FileKeyStore"`
 	DummyKeystore *DummyKeystoreOpts `mapstructure:"dummykeystore,omitempty" json:"dummykeystore,omitempty"`
 	InmemKeystore *InmemKeystoreOpts `mapstructure:"inmemkeystore,omitempty" json:"inmemkeystore,omitempty"`
 }

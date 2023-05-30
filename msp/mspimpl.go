@@ -183,17 +183,20 @@ func (msp *bccspmsp) getCertFromPem(idBytes []byte) (*x509.Certificate, error) {
 
 func (msp *bccspmsp) getIdentityFromConf(idBytes []byte) (Identity, bccsp.Key, error) {
 	// get a cert
+	// 读取证书原始数据转换为x509证书对象
 	cert, err := msp.getCertFromPem(idBytes)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// get the public key in the right format
+	// 讲证书数据转换为身份公钥
 	certPubK, err := msp.bccsp.KeyImport(cert, &bccsp.X509PublicKeyImportOpts{Temporary: true})
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// 创建身份对象
 	mspId, err := newIdentity(cert, certPubK, msp)
 	if err != nil {
 		return nil, nil, err
